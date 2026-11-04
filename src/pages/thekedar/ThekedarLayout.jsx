@@ -56,6 +56,7 @@ export default function ThekedarLayout({ children }) {
   const { showToast } = useContext(ToastContext);
 
   useEffect(() => {
+    if (sessionStorage.getItem('thekedar_profile_checked') === 'true') return;
     const checkProfile = async () => {
       try {
         const res = await api.get('/thekedars/me');
@@ -63,6 +64,8 @@ export default function ThekedarLayout({ children }) {
           const profile = res.data.data;
           if (!profile.bio && !profile.location && !profile.rate_per_hour) {
             navigate('/thekedar/complete-profile');
+          } else {
+            sessionStorage.setItem('thekedar_profile_checked', 'true');
           }
         }
       } catch (err) {
@@ -72,7 +75,7 @@ export default function ThekedarLayout({ children }) {
     if (user && user.role === 'thekedar' && location.pathname !== '/thekedar/complete-profile') {
       checkProfile();
     }
-  }, [user, location.pathname, navigate]);
+  }, [user?.id]);
 
   const handleAvailabilityToggle = async () => {
     const newStatus = !isOnline;

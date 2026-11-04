@@ -101,14 +101,19 @@ export default function CompleteProfile() {
         is_online: true
       });
 
-      // Step 2: Add services
-      for (const s of selectedServices) {
-        await api.post('/thekedar-services', {
-          service_id: s.service_id,
-          custom_rate: parseFloat(s.custom_rate || formData.rate_per_hour)
-        });
+      // Step 2: Add all services in 1 ultra-fast batch request
+      const batchPayload = selectedServices.map(s => ({
+        service_id: s.service_id,
+        custom_rate: parseFloat(s.custom_rate || formData.rate_per_hour)
+      }));
+      try {
+        await api.post('/thekedar-services/batch', batchPayload);
+      } catch {
+        // Fallback to parallel requests if needed
+        await Promise.all(batchPayload.map(item => api.post('/thekedar-services', item)));
       }
 
+      sessionStorage.setItem('thekedar_profile_checked', 'true');
       showToast('Profile completed! Welcome to KarigarNow.', 'success');
       navigate('/thekedar/dashboard');
     } catch (err) {

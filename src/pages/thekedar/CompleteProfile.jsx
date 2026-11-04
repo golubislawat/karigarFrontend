@@ -7,13 +7,25 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 
+const DEFAULT_SERVICES = [
+  { id: '21bf4164-ddd2-417b-86b2-df3b1d7e3876', slug: 'plumbing', name: 'Plumbing', description: 'Pipe fitting, leakage repair, tap, drain cleaning' },
+  { id: 'd4c34d38-ac78-4379-91a1-4bdc78481cd3', slug: 'painting', name: 'Wall Painting', description: 'Interior, exterior, texture, waterproofing coats' },
+  { id: '0fedf85a-9b79-4d9b-bd5f-25e04038f087', slug: 'electrical', name: 'Electrical', description: 'Wiring, switchboard, fan, light fitting, MCB work' },
+  { id: '9e24a525-f6d7-471c-ab06-c0975e01c5f5', slug: 'putty-plaster', name: 'Putty & Plaster', description: 'Wall putty, ceiling plaster, crack filling' },
+  { id: '8ab7844b-ad2a-4116-a3db-8cb2423ce8bd', slug: 'tiling', name: 'Tile Installation', description: 'Floor, bathroom, kitchen tiles' },
+  { id: 'e45a03bf-3536-4d8e-880e-4a9baadb17ea', slug: 'carpentry', name: 'Carpentry', description: 'Doors, windows, furniture assembly, shelves' },
+  { id: '14d10d49-844f-46bb-9624-87c8fcde7ce8', slug: 'waterproofing', name: 'Waterproofing', description: 'Terrace, bathroom, basement waterproofing' },
+  { id: '455c53f8-d5f8-4123-9ce3-9fbf5a384955', slug: 'cleaning', name: 'Deep Cleaning', description: 'Full home cleaning, sofa, carpet, kitchen' },
+];
+
 export default function CompleteProfile() {
   const { user } = useAuth();
   const { showToast } = useContext(ToastContext);
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
-  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [services, setServices] = useState(DEFAULT_SERVICES);
   const [formData, setFormData] = useState({
     bio: '',
     experience: '',
@@ -27,13 +39,19 @@ export default function CompleteProfile() {
   }, []);
 
   const fetchServices = async () => {
+    setLoadingServices(true);
     try {
       const res = await api.get('/services');
-      if (res.data.success) {
+      if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
         setServices(res.data.data);
+      } else {
+        setServices(DEFAULT_SERVICES);
       }
     } catch (err) {
-      showToast('Failed to load services', 'error');
+      console.warn('Using default services list due to network latency:', err);
+      setServices(DEFAULT_SERVICES);
+    } finally {
+      setLoadingServices(false);
     }
   };
 
@@ -178,9 +196,17 @@ export default function CompleteProfile() {
 
           {/* Services Section */}
           <div className="bg-white border border-rule rounded-3xl p-8 lg:p-10 shadow-premium">
-            <h2 className="text-[22px] font-display font-bold text-ink mb-2 flex items-center gap-3">
-               <span className="w-1.5 h-6 bg-accent2 rounded-full"></span>
-               Core Services
+            <h2 className="text-[22px] font-display font-bold text-ink mb-2 flex items-center justify-between">
+               <span className="flex items-center gap-3">
+                 <span className="w-1.5 h-6 bg-accent2 rounded-full"></span>
+                 Core Services
+               </span>
+               {loadingServices && (
+                 <span className="text-[12px] font-medium text-muted flex items-center gap-2">
+                   <svg className="animate-spin h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                   Updating live categories...
+                 </span>
+               )}
             </h2>
             <p className="text-[14px] text-mid font-medium mb-10 ml-4.5">Select the specialized services your team handles.</p>
 

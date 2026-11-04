@@ -58,9 +58,15 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/login', form);
+      const res = await api.post('/auth/login', form);
+      if (res.data?.data?.token) {
+        localStorage.setItem('karigar_token', res.data.data.token);
+      }
       const meRes = await api.get('/auth/me');
       const loggedInUser = meRes.data.data;
+      if (res.data?.data?.token && !loggedInUser.token) {
+        loggedInUser.token = res.data.data.token;
+      }
       login(loggedInUser);
       setSuccess(`Welcome back, ${loggedInUser.name}!`);
       setTimeout(() => {
@@ -120,12 +126,18 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/login-otp', {
+      const res = await api.post('/auth/login-otp', {
         email: form.email,
         otp: otpValue
       });
+      if (res.data?.data?.token) {
+        localStorage.setItem('karigar_token', res.data.data.token);
+      }
       const meRes = await api.get('/auth/me');
       const loggedInUser = meRes.data.data;
+      if (res.data?.data?.token && !loggedInUser.token) {
+        loggedInUser.token = res.data.data.token;
+      }
       login(loggedInUser);
       setSuccess(`Welcome back, ${loggedInUser.name}!`);
       setTimeout(() => {

@@ -20,8 +20,14 @@ export default function GoogleAuthButton({ role = 'consumer', text = 'signin_wit
       });
 
       if (res.data.success) {
+        if (res.data?.data?.token) {
+          localStorage.setItem('karigar_token', res.data.data.token);
+        }
         const meRes = await api.get('/auth/me');
         const loggedInUser = meRes.data.data;
+        if (res.data?.data?.token && !loggedInUser.token) {
+          loggedInUser.token = res.data.data.token;
+        }
         login(loggedInUser);
         if (onSuccess) onSuccess(loggedInUser);
         navigate(loggedInUser.role === 'thekedar' ? '/thekedar/dashboard' : '/');

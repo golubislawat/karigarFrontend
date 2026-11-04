@@ -12,9 +12,13 @@ export function AuthProvider({ children }) {
       .then(res => {
         if (res.data.success) {
           setUser(res.data.data);
+          if (res.data.data?.token) {
+            localStorage.setItem('karigar_token', res.data.data.token);
+          }
         }
       })
       .catch(() => {
+        localStorage.removeItem('karigar_token');
         setUser(null);
       })
       .finally(() => {
@@ -26,9 +30,16 @@ export function AuthProvider({ children }) {
   const loginFromApi = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     if (res.data.success) {
+      if (res.data.data?.token) {
+        localStorage.setItem('karigar_token', res.data.data.token);
+      }
       // Fetch full user data
       const meRes = await api.get('/auth/me');
-      setUser(meRes.data.data);
+      const loggedIn = meRes.data.data;
+      if (res.data.data?.token && !loggedIn.token) {
+        loggedIn.token = res.data.data.token;
+      }
+      setUser(loggedIn);
       return meRes.data;
     }
     return res.data;
@@ -36,6 +47,9 @@ export function AuthProvider({ children }) {
 
   // Set user directly — used after login page gets user from /auth/me
   const login = (userData) => {
+    if (userData?.token) {
+      localStorage.setItem('karigar_token', userData.token);
+    }
     setUser(userData);
   };
 
@@ -45,6 +59,7 @@ export function AuthProvider({ children }) {
     } catch {
       // ignore errors
     } finally {
+      localStorage.removeItem('karigar_token');
       setUser(null);
     }
   };

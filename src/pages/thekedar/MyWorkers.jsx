@@ -205,9 +205,20 @@ function WorkerModal({ worker, services, onClose, onSubmit }) {
   );
 }
 
+const DEFAULT_SERVICES = [
+  { id: '21bf4164-ddd2-417b-86b2-df3b1d7e3876', slug: 'plumbing', name: 'Plumbing', description: 'Pipe fitting, leakage repair, tap, drain cleaning' },
+  { id: 'd4c34d38-ac78-4379-91a1-4bdc78481cd3', slug: 'painting', name: 'Wall Painting', description: 'Interior, exterior, texture, waterproofing coats' },
+  { id: '0fedf85a-9b79-4d9b-bd5f-25e04038f087', slug: 'electrical', name: 'Electrical', description: 'Wiring, switchboard, fan, light fitting, MCB work' },
+  { id: '9e24a525-f6d7-471c-ab06-c0975e01c5f5', slug: 'putty-plaster', name: 'Putty & Plaster', description: 'Wall putty, ceiling plaster, crack filling' },
+  { id: '8ab7844b-ad2a-4116-a3db-8cb2423ce8bd', slug: 'tiling', name: 'Tile Installation', description: 'Floor, bathroom, kitchen tiles' },
+  { id: 'e45a03bf-3536-4d8e-880e-4a9baadb17ea', slug: 'carpentry', name: 'Carpentry', description: 'Doors, windows, furniture assembly, shelves' },
+  { id: '14d10d49-844f-46bb-9624-87c8fcde7ce8', slug: 'waterproofing', name: 'Waterproofing', description: 'Terrace, bathroom, basement waterproofing' },
+  { id: '455c53f8-d5f8-4123-9ce3-9fbf5a384955', slug: 'cleaning', name: 'Deep Cleaning', description: 'Full home cleaning, sofa, carpet, kitchen' },
+];
+
 export default function MyWorkers() {
   const [workers, setWorkers] = useState([]);
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState(DEFAULT_SERVICES);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

@@ -128,11 +128,18 @@ export default function Register() {
       });
 
       if (res.data.success) {
+        if (res.data?.data?.token) {
+          localStorage.setItem('karigar_token', res.data.data.token);
+        }
         // Auto-login newly registered user
         try {
           const meRes = await api.get('/auth/me');
           if (meRes.data.success) {
-            login(meRes.data.data);
+            const loggedIn = meRes.data.data;
+            if (res.data?.data?.token && !loggedIn.token) {
+              loggedIn.token = res.data.data.token;
+            }
+            login(loggedIn);
             navigate(role === 'thekedar' ? '/thekedar/dashboard' : '/');
             return;
           }

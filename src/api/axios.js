@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
-    return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
+    const clean = import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
   return '/api';
 };

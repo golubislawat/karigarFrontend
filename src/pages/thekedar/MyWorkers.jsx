@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../api/axios';
 import ToastContext from '../../context/ToastContext';
 import { formatCurrency } from '../../utils/formatters';
@@ -214,6 +215,15 @@ export default function MyWorkers() {
   const [editWorker, setEditWorker] = useState(null);
   const [deleteWorker, setDeleteWorker] = useState(null);
   const { showToast } = useContext(ToastContext);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') {
+      setEditWorker(null);
+      setModalOpen(true);
+    }
+  }, [location.search]);
 
   const loadWorkers = async () => {
     try {

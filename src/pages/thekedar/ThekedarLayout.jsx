@@ -7,7 +7,7 @@ import ToastContext from '../../context/ToastContext';
 const navItems = [
   { label: 'Overview', to: '/thekedar/dashboard', icon: 'grid' },
   { label: 'Jobs', to: '/thekedar/jobs', icon: 'clipboard' },
-  { label: 'Workers', to: '/thekedar/workers', icon: 'users' },
+  { label: 'Labour / Workers', to: '/thekedar/workers', icon: 'users' },
   { label: 'Earnings', to: '/thekedar/earnings', icon: 'dollar' },
   { label: 'Settings', to: '/thekedar/profile', icon: 'user' },
 ];
@@ -140,20 +140,30 @@ export default function ThekedarLayout({ children }) {
           {navItems.map(item => {
             const active = isActive(item.to);
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex items-center gap-3 px-4 py-3 text-[13px] font-bold rounded-xl transition-all duration-200 ${
-                  active 
-                    ? 'bg-ink text-white shadow-premium' 
-                    : 'text-mid hover:text-ink hover:bg-bg'
-                }`}
-              >
-                <span className={`${active ? 'text-accent2' : 'text-muted group-hover:text-ink'}`}>
-                  <NavIcon name={item.icon} />
-                </span>
-                {item.label}
-              </Link>
+              <div key={item.to} className="flex items-center gap-1">
+                <Link
+                  to={item.to}
+                  className={`flex-1 flex items-center gap-3 px-4 py-3 text-[13px] font-bold rounded-xl transition-all duration-200 ${
+                    active 
+                      ? 'bg-ink text-white shadow-premium' 
+                      : 'text-mid hover:text-ink hover:bg-bg'
+                  }`}
+                >
+                  <span className={`${active ? 'text-accent2' : 'text-muted group-hover:text-ink'}`}>
+                    <NavIcon name={item.icon} />
+                  </span>
+                  {item.label}
+                </Link>
+                {item.to === '/thekedar/workers' && (
+                  <Link
+                    to="/thekedar/workers?add=true"
+                    title="Add Labour"
+                    className="p-2.5 rounded-xl bg-ap hover:bg-accent hover:text-white text-accent2 transition-all shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                  </Link>
+                )}
+              </div>
             );
           })}
         </nav>

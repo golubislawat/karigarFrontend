@@ -104,32 +104,44 @@ function DispatchModal({ booking, workers, onClose, onDispatch }) {
         </div>
 
         <div className="space-y-3 mb-8 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-          {workers.map(w => {
-            const isSelected = selected.includes(w.id);
-            return (
-              <button
-                key={w.id}
-                onClick={() => handleToggle(w.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all group ${
-                  isSelected
-                    ? 'border-accent2 bg-ap shadow-inner-soft'
-                    : 'border-rule bg-white hover:border-muted hover:bg-bg'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                  isSelected ? 'border-accent2 bg-accent2' : 'border-rule bg-bg'
-                }`}>
-                  {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
-                </div>
-                <div className="flex-1">
-                  <p className="text-[14px] font-bold text-ink">{w.name}</p>
-                  <p className="text-[11px] text-muted font-bold uppercase tracking-widest">
-                    {Array.isArray(w.skills) ? w.skills.join(' • ') : w.skills}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+          {workers.length === 0 ? (
+            <div className="p-6 text-center bg-bg rounded-2xl border border-rule">
+              <p className="text-mid font-medium text-[13px] mb-3">You don't have any workers in your team yet.</p>
+              <Link to="/thekedar/workers" className="px-5 py-2.5 bg-accent text-white font-bold text-[12px] rounded-xl inline-block hover:shadow-md transition-all">
+                Add Labour in Team
+              </Link>
+            </div>
+          ) : (
+            workers.map(w => {
+              const isSelected = selected.includes(w.id);
+              const skillsDisplay = Array.isArray(w.skills)
+                ? w.skills.map(s => String(s).replace(/[{}]/g, '')).filter(Boolean).join(' • ')
+                : (w.skills ? String(w.skills).replace(/[{}]/g, '') : '');
+              return (
+                <button
+                  key={w.id}
+                  onClick={() => handleToggle(w.id)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all group ${
+                    isSelected
+                      ? 'border-accent2 bg-ap shadow-inner-soft'
+                      : 'border-rule bg-white hover:border-muted hover:bg-bg'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                    isSelected ? 'border-accent2 bg-accent2' : 'border-rule bg-bg'
+                  }`}>
+                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[14px] font-bold text-ink">{w.name}</p>
+                    <p className="text-[11px] text-muted font-bold uppercase tracking-widest">
+                      {skillsDisplay || 'Labour / Specialist'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
 
         {error && (

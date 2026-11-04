@@ -46,9 +46,12 @@ function WorkerCard({ worker, onToggle, onEdit, onDelete }) {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          {(Array.isArray(worker.skills) ? worker.skills : worker.skills?.split(',') || []).map((skill, i) => (
+          {(Array.isArray(worker.skills)
+            ? worker.skills
+            : (worker.skills ? String(worker.skills).replace(/[{}]/g, '').split(',') : [])
+          ).filter(Boolean).map((skill, i) => (
             <span key={i} className="text-[10px] font-black px-2.5 py-1 rounded-full bg-bg border border-rule/50 text-mid uppercase tracking-widest group-hover:border-accent2/20 transition-all">
-              {skill.trim()}
+              {String(skill).trim()}
             </span>
           ))}
         </div>
@@ -212,11 +215,17 @@ export default function MyWorkers() {
   const [deleteWorker, setDeleteWorker] = useState(null);
   const { showToast } = useContext(ToastContext);
 
-  const loadWorkers = () => {
-    api.get('/workers')
-      .then(res => { if (res.data.success) setWorkers(res.data.data); })
-      .catch(() => showToast('Failed to load workers', 'error'))
-      .finally(() => setLoading(false));
+  const loadWorkers = async () => {
+    try {
+      const res = await api.get('/workers');
+      if (res.data.success) {
+        setWorkers(res.data.data || []);
+      }
+    } catch {
+      showToast('Failed to load workers', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadServices = () => {
@@ -243,7 +252,13 @@ export default function MyWorkers() {
     const res = await api.post('/workers', data);
     if (res.data.success) {
       showToast('Worker added to your team!', 'success');
-      loadWorkers();
+      if (res.data.data) {
+        setWorkers(prev => [res.data.data, ...prev]);
+      }
+      await loadWorkers();
+      return res.data;
+    } else {
+      throw new Error(res.data.message || 'Failed to add worker');
     }
   };
 
@@ -251,7 +266,13 @@ export default function MyWorkers() {
     const res = await api.put(`/workers/${id}`, data);
     if (res.data.success) {
       showToast('Worker updated!', 'success');
-      loadWorkers();
+      if (res.data.data) {
+        setWorkers(prev => prev.map(w => w.id === id ? res.data.data : w));
+      }
+      await loadWorkers();
+      return res.data;
+    } else {
+      throw new Error(res.data.message || 'Failed to update worker');
     }
   };
 
@@ -343,7 +364,18 @@ export default function MyWorkers() {
           <div className="w-20 h-20 bg-bg rounded-full flex items-center justify-center mx-auto mb-6 text-muted">
              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
           </div>
-          <p className="text-mid font-bold uppercase tracking-widest text-[13px]">No workers match your criteria</p>
+          <p className="text-mid font-bold uppercase tracking-widest text-[13px] mb-4">
+            {workers.length === 0 ? 'No workers in your team yet' : 'No workers match your criteria'}
+          </p>
+          {workers.length === 0 && (
+            <button
+              onClick={() => { setEditWorker(null); setModalOpen(true); }}
+              className="px-6 py-3 bg-accent text-white text-[13px] font-bold rounded-xl shadow-premium hover:shadow-premium-hover transition-all inline-flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+              Add First Worker
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

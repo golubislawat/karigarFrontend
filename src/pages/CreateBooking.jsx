@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import Map, { Marker, NavigationControl, AttributionControl } from 'react-map-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import OpenStreetMapPicker from '../components/common/OpenStreetMapPicker';
 import api from '../api/axios';
 import useAuth from '../hooks/useAuth';
 
@@ -10,7 +9,6 @@ function formatCurrency(n) {
 }
 
 const PLATFORM_FEE_RATE = 0.05;
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function CreateBooking() {
   const { thekedarId } = useParams();
@@ -42,13 +40,6 @@ export default function CreateBooking() {
     postal_code: '',
   });
   const [isMapLocationSelected, setIsMapLocationSelected] = useState(false);
-  const [locationSearch, setLocationSearch] = useState('');
-
-  const [mapState, setMapState] = useState({
-    longitude: 75.8577, // Indore, MP Longitude
-    latitude: 22.7196,  // Indore, MP Latitude
-    zoom: 12,
-  });
 
   useEffect(() => {
     setLoadingThekedar(true);
@@ -70,65 +61,11 @@ export default function CreateBooking() {
       });
   }, []);
 
-  const reverseGeocode = async (lng, lat) => {
-    try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`
-      );
-      const data = await res.json();
-      if (data.features && data.features.length > 0) {
-        const feature = data.features[0];
-        const address = feature.place_name;
-        
-        // Extract structured components for address creation
-        const city = feature.context?.find(c => c.id.startsWith('place'))?.text || 'Indore';
-        const state = feature.context?.find(c => c.id.startsWith('region'))?.text || 'Madhya Pradesh';
-        const postal = feature.context?.find(c => c.id.startsWith('postcode'))?.text || '452001';
-        const country = feature.context?.find(c => c.id.startsWith('country'))?.text || 'India';
-
-        setMapAddressDetails({
-          address_line1: address,
-          city: city,
-          state: state,
-          country: country,
-          postal_code: postal,
-        });
-
-        setMapMarkerAddress(address);
-        setIsMapLocationSelected(true);
-        setSelectedAddressId('');
-      }
-    } catch (err) {
-      console.error('Reverse geocoding failed:', err);
-    }
-  };
-
-  const handleMapLoad = (e) => {
-    e.target.resize();
-  };
-
-  const handleMapClick = (e) => {
-    const { lng, lat } = e.lngLat;
-    setMapState(prev => ({ ...prev, longitude: lng, latitude: lat, zoom: 14 }));
-    reverseGeocode(lng, lat);
-  };
-
-  const handleLocationSearch = async () => {
-    if (!locationSearch) return;
-    try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationSearch)}.json?access_token=${MAPBOX_TOKEN}&limit=1`
-      );
-      const data = await res.json();
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        setMapState({ longitude: lng, latitude: lat, zoom: 14 });
-        reverseGeocode(lng, lat);
-        setSelectedAddressId('');
-      }
-    } catch (err) {
-      console.error('Search failed:', err);
-    }
+  const handleLocationSelect = ({ latitude, longitude, displayName, addressDetails }) => {
+    setMapAddressDetails(addressDetails);
+    setMapMarkerAddress(displayName);
+    setIsMapLocationSelected(true);
+    setSelectedAddressId('');
   };
 
   const teamSize = thekedar?.team_size || thekedar?.workers?.length || 1;
@@ -388,49 +325,10 @@ export default function CreateBooking() {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search specific location..."
-                        value={locationSearch}
-                        onChange={e => setLocationSearch(e.target.value)}
-                        onKeyPress={e => e.key === 'Enter' && handleLocationSearch()}
-                        className="w-full pl-4 pr-24 py-3.5 rounded-xl bg-bg border border-rule text-ink text-[14px] font-bold outline-none focus:border-accent transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleLocationSearch}
-                        className="absolute right-2 top-2 bottom-2 px-4 bg-ink text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-accent transition-all"
-                      >
-                        Search
-                      </button>
-                    </div>
-
-                    {!MAPBOX_TOKEN || MAPBOX_TOKEN === 'YOUR_MAPBOX_TOKEN' ? (
-                      <div className="w-full h-64 rounded-2xl border border-dashed border-rule bg-bg2/50 flex flex-col items-center justify-center text-center p-8">
-                        <svg className="w-10 h-10 text-muted/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                        <p className="text-[12px] font-medium text-muted">Geographic positioning unavailable. Please use saved addresses.</p>
-                      </div>
-                    ) : (
-                      <div className="w-full h-64 rounded-2xl border border-rule overflow-hidden shadow-inner-soft relative">
-                        <Map
-                          initialViewState={mapState}
-                          mapboxAccessToken={MAPBOX_TOKEN}
-                          onLoad={handleMapLoad}
-                          onClick={handleMapClick}
-                          mapStyle="mapbox://styles/mapbox/streets-v11"
-                          style={{ width: '100%', height: '100%' }}
-                        >
-                          <NavigationControl position="top-right" />
-                          <AttributionControl position="bottom-left" />
-                          {isMapLocationSelected && (
-                            <Marker longitude={mapState.longitude} latitude={mapState.latitude} color="#10b981" />
-                          )}
-                        </Map>
-                      </div>
-                    )}
-                  </div>
+                  <OpenStreetMapPicker
+                    onLocationSelect={handleLocationSelect}
+                    autoDetectOnMount={true}
+                  />
                 )}
 
                 {(selectedAddressId || isMapLocationSelected) && (
@@ -438,7 +336,7 @@ export default function CreateBooking() {
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isMapLocationSelected ? 'bg-blue text-white' : 'bg-accent text-white'}`}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-[11px] font-black uppercase tracking-widest text-ink mb-1">
                         {isMapLocationSelected ? 'Map coordinate confirmed' : 'Verified Address'}
                       </p>
@@ -450,6 +348,22 @@ export default function CreateBooking() {
                           return [addr.address_line1, addr.address_line2, addr.city].filter(Boolean).join(', ');
                         })()}
                       </p>
+                      {isMapLocationSelected && (
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            placeholder="Flat / House / Floor / Landmark (optional)"
+                            value={mapAddressDetails.address_line2 || ''}
+                            onChange={(e) =>
+                              setMapAddressDetails((prev) => ({
+                                ...prev,
+                                address_line2: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 rounded-lg bg-white border border-blue/20 text-ink text-[12px] font-medium outline-none focus:border-blue transition-all"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

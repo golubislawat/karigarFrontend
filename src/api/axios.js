@@ -4,12 +4,7 @@ const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
   }
-  // When running locally in dev mode, use Vite proxy /api
-  if (import.meta.env.DEV) {
-    return '/api';
-  }
-  // In production (Vercel), default to the live Render backend
-  return 'https://karigarbackend.onrender.com/api';
+  return '/api';
 };
 
 const api = axios.create({

@@ -5,15 +5,22 @@ import useAuth from '../../hooks/useAuth';
 import ToastContext from '../../context/ToastContext';
 import { formatCurrency, formatDate, maskName, isToday, isThisWeek } from '../../utils/formatters';
 
-function StatCard({ label, value, accent }) {
+function StatCard({ label, value, accent, subtext }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-rule/50 shadow-premium hover:shadow-premium-hover transition-all group">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted mb-4 group-hover:text-accent2 transition-colors">
-        {label}
-      </p>
-      <p className={`text-[32px] font-black tracking-tight tabular-nums leading-none ${accent ? 'text-accent2' : 'text-ink'}`}>
-        {value}
-      </p>
+    <div className="bg-white rounded-2xl p-6 border border-rule/50 shadow-premium hover:shadow-premium-hover transition-all group flex flex-col justify-between">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted mb-4 group-hover:text-accent2 transition-colors">
+          {label}
+        </p>
+        <p className={`text-[32px] font-black tracking-tight tabular-nums leading-none ${accent ? 'text-accent2' : 'text-ink'}`}>
+          {value}
+        </p>
+      </div>
+      {subtext && (
+        <p className="text-[11px] font-medium text-muted mt-3">
+          {subtext}
+        </p>
+      )}
     </div>
   );
 }
@@ -81,19 +88,18 @@ function RequestCard({ booking, onAccept, onDecline }) {
   return (
     <div className="bg-white rounded-2xl border border-rule/60 p-6 shadow-premium relative overflow-hidden group">
       {accepted && acceptedBooking ? (
-        <div className="text-center py-4 animate-in scale-in">
-          <div className="w-12 h-12 bg-gbg text-green rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-6 animate-in scale-in">
+          <div className="w-12 h-12 bg-gbg text-green rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
           </div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted mb-6">Dispatch Verification OTP</p>
-          <div className="flex justify-center gap-2 mb-6">
-            {acceptedBooking.otp ? acceptedBooking.otp.split('').map((d, i) => (
-              <div key={i} className="w-10 h-14 rounded-xl flex items-center justify-center text-[20px] font-black bg-accent text-white shadow-premium">
-                {d}
-              </div>
-            )) : <span className="text-2xl font-black text-accent2">----</span>}
+          <p className="text-[14px] font-bold text-ink mb-1">Job Accepted Successfully!</p>
+          <p className="text-[12px] text-mid font-medium max-w-[260px] mx-auto mb-3 leading-relaxed">
+            Arrival verification OTP has been emailed to the customer.
+          </p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-ap text-accent text-[10px] font-black uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+            Verify OTP upon arrival at site
           </div>
-          <p className="text-[12px] font-medium text-mid italic">Dispatch workers from job details.</p>
         </div>
       ) : (
         <>
@@ -187,24 +193,17 @@ function ActiveJobCard({ booking }) {
         </button>
       )}
 
-      {(booking.booking_status === 'accepted' || booking.booking_status === 'dispatched') && booking.otp && (
-        <div className="space-y-4">
-          <div className="flex justify-center gap-1.5">
-            {booking.otp.split('').map((d, i) => (
-              <div key={i} className="w-8 h-10 rounded-lg flex items-center justify-center text-[16px] font-black bg-bg2 text-ink border border-rule/50">{d}</div>
-            ))}
-          </div>
-          <div className="text-center">
-            {booking.booking_status === 'accepted' ? (
-              <span className="text-[10px] font-black uppercase tracking-widest text-blue py-1 px-3 bg-bluebg rounded-full">
-                Awaiting Dispatch
-              </span>
-            ) : (
-              <span className="text-[10px] font-black uppercase tracking-widest text-green py-1 px-3 bg-gbg rounded-full">
-                Workers Dispatched
-              </span>
-            )}
-          </div>
+      {(booking.booking_status === 'accepted' || booking.booking_status === 'dispatched') && (
+        <div className="text-center pt-2">
+          {booking.booking_status === 'accepted' ? (
+            <span className="text-[10px] font-black uppercase tracking-widest text-blue py-1.5 px-4 bg-bluebg rounded-full">
+              Awaiting Worker Dispatch
+            </span>
+          ) : (
+            <span className="text-[10px] font-black uppercase tracking-widest text-green py-1.5 px-4 bg-gbg rounded-full">
+              Workers Dispatched • Awaiting Customer OTP
+            </span>
+          )}
         </div>
       )}
 
@@ -225,6 +224,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [workers, setWorkers] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const { showToast } = useContext(ToastContext);
 
@@ -232,24 +232,37 @@ export default function Dashboard() {
     Promise.all([
       api.get('/bookings?page=0&size=100'),
       api.get('/workers'),
-    ]).then(([bRes, wRes]) => {
+      api.get('/thekedars/me'),
+    ]).then(([bRes, wRes, pRes]) => {
       if (bRes.data.success) setBookings(bRes.data.data.content || []);
       if (wRes.data.success) setWorkers(wRes.data.data || []);
+      if (pRes.data.success) setProfile(pRes.data.data);
     }).catch(() => {
       showToast('Failed to load dashboard data', 'error');
     }).finally(() => setLoading(false));
   }, []);
 
+  const getPayout = (b) => {
+    if (b.thekedar_payout != null && !isNaN(Number(b.thekedar_payout))) {
+      return Number(b.thekedar_payout);
+    }
+    if (b.total_amount != null && !isNaN(Number(b.total_amount))) {
+      return Number(b.total_amount) * 0.95;
+    }
+    return 0;
+  };
+
   const pendingBookings = bookings.filter(b => b.booking_status === 'pending');
   const activeBookings = bookings.filter(b => ['accepted', 'dispatched', 'in_progress'].includes(b.booking_status));
-  const todayJobs = bookings.filter(b => b.scheduled_at && isToday(b.scheduled_at));
-  const todayEarnings = bookings
-    .filter(b => b.booking_status === 'completed' && b.scheduled_at && isToday(b.scheduled_at))
-    .reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
-  const weekJobs = bookings.filter(b => b.scheduled_at && isThisWeek(b.scheduled_at));
-  const weekEarnings = bookings
-    .filter(b => b.booking_status === 'completed' && b.scheduled_at && isThisWeek(b.scheduled_at))
-    .reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
+  const completedBookings = bookings.filter(b => b.booking_status === 'completed');
+  
+  const totalEarned = completedBookings.reduce((sum, b) => sum + getPayout(b), 0);
+  const todayEarnings = completedBookings
+    .filter(b => (b.scheduled_at && isToday(b.scheduled_at)) || (b.created_at && isToday(b.created_at)))
+    .reduce((sum, b) => sum + getPayout(b), 0);
+  const weekJobs = completedBookings.filter(b => (b.scheduled_at && isThisWeek(b.scheduled_at)) || (b.created_at && isThisWeek(b.created_at)));
+  const weekEarnings = weekJobs.reduce((sum, b) => sum + getPayout(b), 0);
+  const liveRating = Number(profile?.rating_average ?? user?.rating_average ?? 5.0);
 
   const handleAccept = (id, updatedBooking) => {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updatedBooking, booking_status: 'accepted' } : b));
@@ -323,10 +336,27 @@ export default function Dashboard() {
 
       {/* ── STATS ROW ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Today's Active Jobs" value={todayJobs.length} />
-        <StatCard label="Pending Requests" value={pendingBookings.length} />
-        <StatCard label="Today's Payout" value={formatCurrency(todayEarnings)} accent />
-        <StatCard label="Live Rating" value={`${(user?.rating_average || 0).toFixed(1)}`} />
+        <StatCard 
+          label={activeBookings.length > 0 ? "Active Operations" : "Jobs Completed"} 
+          value={activeBookings.length > 0 ? activeBookings.length : (completedBookings.length || profile?.total_jobs || 0)}
+          subtext={activeBookings.length > 0 ? `${completedBookings.length} completed all-time` : `${activeBookings.length} active right now`}
+        />
+        <StatCard 
+          label="Pending Requests" 
+          value={pendingBookings.length} 
+          subtext={pendingBookings.length > 0 ? "Action required" : "All caught up"}
+        />
+        <StatCard 
+          label="Total Revenue" 
+          value={formatCurrency(totalEarned)} 
+          accent 
+          subtext={todayEarnings > 0 ? `${formatCurrency(todayEarnings)} today` : `${completedBookings.length} completed jobs`}
+        />
+        <StatCard 
+          label="Live Rating" 
+          value={`${liveRating.toFixed(1)} ★`} 
+          subtext={`${completedBookings.length} client ratings`}
+        />
       </div>
 
       {/* ── INCOMING REQUESTS ── */}
@@ -394,15 +424,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div>
             <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Total Volume</p>
-            <p className="text-[28px] font-black text-ink tabular-nums leading-none">{weekJobs.length}</p>
+            <p className="text-[28px] font-black text-ink tabular-nums leading-none">{weekJobs.length || completedBookings.length || profile?.total_jobs || 0}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Weekly Earnings</p>
-            <p className="text-[28px] font-black text-accent2 tabular-nums leading-none">{formatCurrency(weekEarnings)}</p>
+            <p className="text-[28px] font-black text-accent2 tabular-nums leading-none">{formatCurrency(weekEarnings || totalEarned)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Consistency</p>
-            <p className="text-[28px] font-black text-ink tabular-nums leading-none">{(user?.rating_average || 0).toFixed(1)}</p>
+            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Live Rating</p>
+            <p className="text-[28px] font-black text-ink tabular-nums leading-none">{liveRating.toFixed(1)} ★</p>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Active Force</p>

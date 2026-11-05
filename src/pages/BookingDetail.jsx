@@ -31,32 +31,7 @@ const STEP_LABELS = {
   completed: 'Done',
 };
 
-// ── OTP Display Box (The Security Vault) ──────────────────────────────────────────
-function OtpDisplayBox({ otp }) {
-  if (!otp) return null;
-  return (
-    <div className="rounded-3xl p-8 mb-8 text-center bg-white border border-rule shadow-premium relative overflow-hidden group">
-      <div className="absolute top-0 left-0 w-full h-1 bg-accent2"></div>
-      <div className="flex items-center justify-center gap-2 mb-6">
-        <svg className="w-5 h-5 text-accent2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ink">Arrival Verification Code</p>
-      </div>
-      <div className="flex justify-center gap-3 mb-6">
-        {otp.split('').map((d, i) => (
-          <div key={i}
-            className="w-16 h-20 rounded-2xl flex items-center justify-center text-4xl font-display font-black bg-bg border-2 border-rule text-accent group-hover:border-accent2 transition-colors shadow-inner-soft">
-            {d}
-          </div>
-        ))}
-      </div>
-      <p className="text-[13px] font-medium text-mid leading-relaxed max-w-xs mx-auto">
-        Share this unique code with the thekedar <span className="text-ink font-bold">only after they arrive</span> at your location.
-      </p>
-    </div>
-  );
-}
-
-// ── OTP Input Form (Precision Entry) ────────────────────────────────────────────
+// ── OTP Input Form (Consumer Verification) ────────────────────────────────────────────
 function OtpInputForm({ bookingId, onVerified }) {
   const [digits, setDigits] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -114,7 +89,7 @@ function OtpInputForm({ bookingId, onVerified }) {
         onVerified();
       }
     } catch (err) {
-      setError('Invalid code. Please re-enter.');
+      setError(err.response?.data?.message || 'Invalid verification code. Please check your email and re-enter.');
       setShake(true);
       setTimeout(() => setShake(false), 400);
       setDigits(['', '', '', '']);
@@ -125,8 +100,15 @@ function OtpInputForm({ bookingId, onVerified }) {
   };
 
   return (
-    <div className="rounded-3xl p-8 mb-8 bg-bg2/50 border-2 border-dashed border-rule text-center">
-      <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted mb-6">Verify Arrival</h3>
+    <div className="rounded-3xl p-8 mb-8 bg-white border border-rule shadow-premium text-center animate-in slide-up relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-accent"></div>
+      <div className="w-14 h-14 bg-ap text-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner-soft">
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+      </div>
+      <h3 className="text-[14px] font-black uppercase tracking-[0.15em] text-ink mb-2">Team Arrived? Enter Verification Code</h3>
+      <p className="text-[13px] font-medium text-mid leading-relaxed max-w-md mx-auto mb-6">
+        A 4-digit verification code has been sent to your registered email address. Enter the code below when workers arrive to officially start the session.
+      </p>
       <div className="flex justify-center gap-3 mb-6">
         {digits.map((d, i) => (
           <input
@@ -141,7 +123,7 @@ function OtpInputForm({ bookingId, onVerified }) {
             onPaste={handlePaste}
             className={`w-14 h-16 rounded-xl text-center text-2xl font-black transition-all ${
               error ? 'border-red text-red ring-red/10' : 'border-rule text-ink focus:border-accent2 focus:ring-4 focus:ring-accent2/5'
-            } bg-white border-2 outline-none font-display`}
+            } bg-bg border-2 outline-none font-display`}
             style={{ animation: shake ? 'shake 0.4s ease' : 'none' }}
           />
         ))}
@@ -150,9 +132,9 @@ function OtpInputForm({ bookingId, onVerified }) {
       <button
         onClick={handleSubmit}
         disabled={!allFilled || loading}
-        className="w-full max-w-xs mx-auto py-4 rounded-xl bg-ink text-white text-[13px] font-bold uppercase tracking-widest shadow-premium hover:bg-accent transition-all disabled:opacity-50"
+        className="w-full max-w-xs mx-auto py-4 rounded-xl bg-accent text-white text-[13px] font-bold uppercase tracking-widest shadow-premium hover:bg-ink transition-all disabled:opacity-50"
       >
-        {loading ? 'Validating...' : 'Verify & Start Session'}
+        {loading ? 'Validating...' : 'Verify Code & Start Session'}
       </button>
       <style>{`
         @keyframes shake {
@@ -261,6 +243,7 @@ export default function BookingDetail() {
   const handleReviewSubmit = async e => {
     e.preventDefault();
     if (rating === 0) { showToast('Please select a rating.'); return; }
+    if (booking?.has_review || submittingReview) return;
     setSubmittingReview(true);
     try {
       await api.post('/reviews', {
@@ -270,9 +253,14 @@ export default function BookingDetail() {
         comment: reviewComment,
       });
       showToast('Thank you for your feedback!');
+      setBooking(prev => ({ ...prev, has_review: true }));
       fetchBooking();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Review submission failed.');
+      const msg = err.response?.data?.message || 'Review submission failed.';
+      showToast(msg);
+      if (msg.toLowerCase().includes('already')) {
+        setBooking(prev => ({ ...prev, has_review: true }));
+      }
     } finally {
       setSubmittingReview(false);
     }
@@ -378,19 +366,15 @@ export default function BookingDetail() {
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
               <div className="space-y-8">
-                {/* OTP Vault Interaction */}
-                {booking.booking_status === 'dispatched' && booking.otp && (
-                  <OtpDisplayBox otp={booking.otp} />
-                )}
-
-                {booking.booking_status === 'accepted' && booking.otp && (
+                {/* OTP Verification Interaction */}
+                {booking.booking_status === 'accepted' && (
                   <div className="bg-bluebg/20 border border-blue/10 rounded-3xl p-8 text-center animate-in fade-in">
                     <div className="w-12 h-12 bg-bluebg text-blue rounded-full flex items-center justify-center mx-auto mb-4">
                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </div>
-                    <h3 className="text-blue font-bold text-[16px] mb-2">Preparing Dispatch</h3>
+                    <h3 className="text-blue font-bold text-[16px] mb-2">Order Confirmed — Preparing Dispatch</h3>
                     <p className="text-mid text-[13px] font-medium leading-relaxed max-w-sm mx-auto">
-                      The thekedar is organizing the labor force. You will receive an arrival verification code once they are en route.
+                      The contractor has accepted your request and is assembling the workforce. You will be notified with a verification code via email when they depart.
                     </p>
                   </div>
                 )}
@@ -480,11 +464,11 @@ export default function BookingDetail() {
                     <div className="space-y-3 pt-4 border-t border-white/10 text-[13px]">
                       <div className="flex justify-between font-medium opacity-60">
                         <span>Labor Fees</span>
-                        <span className="tabular-nums">{formatCurrency(booking.thekedar_payout)}</span>
+                        <span className="tabular-nums">{formatCurrency(booking.thekedar_payout || (booking.total_amount ? booking.total_amount * 0.95 : 0))}</span>
                       </div>
                       <div className="flex justify-between font-medium opacity-60">
                         <span>Service Fee</span>
-                        <span className="tabular-nums">{formatCurrency(booking.platform_fee)}</span>
+                        <span className="tabular-nums">{formatCurrency(booking.platform_fee || (booking.total_amount ? booking.total_amount * 0.05 : 0))}</span>
                       </div>
                       <div className="flex justify-between font-black pt-3 border-t border-white/10 uppercase tracking-widest text-[11px]">
                         <span>Payment Status</span>
@@ -552,10 +536,10 @@ export default function BookingDetail() {
                         />
                         <button
                           type="submit"
-                          disabled={submittingReview}
-                          className="w-full py-4 rounded-xl bg-accent2 text-white text-[13px] font-black uppercase tracking-widest shadow-md hover:bg-accent transition-all disabled:opacity-50"
+                          disabled={submittingReview || booking?.has_review}
+                          className="w-full py-4 rounded-xl bg-accent2 text-white text-[13px] font-black uppercase tracking-widest shadow-md hover:bg-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {submittingReview ? 'Submitting...' : 'Submit Feedback'}
+                          {submittingReview ? 'Submitting Feedback...' : 'Submit Feedback'}
                         </button>
                       </form>
                     </div>

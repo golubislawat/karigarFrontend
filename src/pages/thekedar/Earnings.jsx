@@ -19,13 +19,33 @@ export default function Earnings() {
       .finally(() => setLoading(false));
   }, []);
 
+  const getPayout = (b) => {
+    if (b.thekedar_payout != null && !isNaN(Number(b.thekedar_payout))) {
+      return Number(b.thekedar_payout);
+    }
+    if (b.total_amount != null && !isNaN(Number(b.total_amount))) {
+      return Number(b.total_amount) * 0.95;
+    }
+    return 0;
+  };
+
+  const getFee = (b) => {
+    if (b.platform_fee != null && !isNaN(Number(b.platform_fee))) {
+      return Number(b.platform_fee);
+    }
+    if (b.total_amount != null && !isNaN(Number(b.total_amount))) {
+      return Number(b.total_amount) * 0.05;
+    }
+    return 0;
+  };
+
   const completedBookings = bookings.filter(b => b.booking_status === 'completed');
 
-  const totalEarned = completedBookings.reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
-  const thisMonth = completedBookings.filter(b => b.scheduled_at && isThisMonth(b.scheduled_at));
-  const thisMonthEarnings = thisMonth.reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
-  const thisWeek = completedBookings.filter(b => b.scheduled_at && isThisWeek(b.scheduled_at));
-  const thisWeekEarnings = thisWeek.reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
+  const totalEarned = completedBookings.reduce((sum, b) => sum + getPayout(b), 0);
+  const thisMonth = completedBookings.filter(b => isThisMonth(b.scheduled_at || b.created_at));
+  const thisMonthEarnings = thisMonth.reduce((sum, b) => sum + getPayout(b), 0);
+  const thisWeek = completedBookings.filter(b => isThisWeek(b.scheduled_at || b.created_at));
+  const thisWeekEarnings = thisWeek.reduce((sum, b) => sum + getPayout(b), 0);
   const totalJobs = completedBookings.length;
 
   const last7Days = useMemo(() => {
@@ -37,12 +57,13 @@ export default function Earnings() {
       const dayStr = d.toDateString();
       const dayEarnings = completedBookings
         .filter(b => {
-          if (!b.scheduled_at) return false;
-          const bDate = new Date(b.scheduled_at);
+          const dateStr = b.scheduled_at || b.created_at;
+          if (!dateStr) return false;
+          const bDate = new Date(dateStr);
           bDate.setHours(0, 0, 0, 0);
           return bDate.toDateString() === dayStr;
         })
-        .reduce((sum, b) => sum + (b.thekedar_payout || 0), 0);
+        .reduce((sum, b) => sum + getPayout(b), 0);
       days.push({
         date: d,
         label: getDayName(d),
@@ -163,28 +184,28 @@ export default function Earnings() {
               ) : paginatedBookings.map(booking => (
                 <tr key={booking.id} className="hover:bg-bg transition-colors group">
                   <td className="px-6 py-5 text-[14px] font-medium text-ink">
-                    {booking.scheduled_at ? formatDateShort(booking.scheduled_at) : '—'}
+                    {formatDateShort(booking.scheduled_at || booking.created_at)}
                   </td>
                   <td className="px-6 py-5">
                     <span className="px-2 py-1 rounded bg-ap border border-accent2/10 text-[11px] font-bold text-accent uppercase tracking-wider">
-                       {booking.service?.name || '—'}
+                       {booking.service?.name || booking.service_name || 'Service'}
                     </span>
                   </td>
                   <td className="px-6 py-5 text-[14px] text-mid font-medium">
-                    {booking.consumer_name ? booking.consumer_name.split(' ')[0] + ' ' + (booking.consumer_name.split(' ')[1]?.[0] || '') + '.' : '—'}
+                    {booking.consumer_name ? booking.consumer_name.split(' ')[0] + ' ' + (booking.consumer_name.split(' ')[1]?.[0] || '') + '.' : 'Customer'}
                   </td>
                   <td className="px-6 py-5 text-[14px] text-mid font-bold">
-                    {booking.workers_needed || '—'}
+                    {booking.workers_needed || 1}
                   </td>
                   <td className="px-6 py-5 text-[14px] font-bold text-ink">
                     {formatCurrency(booking.total_amount)}
                   </td>
                   <td className="px-6 py-5 text-[13px] text-muted font-medium">
-                    {formatCurrency(booking.platform_fee)}
+                    {formatCurrency(getFee(booking))}
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-[16px] font-black text-accent2">
-                      {formatCurrency(booking.thekedar_payout)}
+                    <span className="text-[16px] font-black text-accent2 font-display">
+                      {formatCurrency(getPayout(booking))}
                     </span>
                   </td>
                 </tr>

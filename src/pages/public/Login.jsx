@@ -24,7 +24,6 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [devOtp, setDevOtp] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -103,10 +102,7 @@ export default function Login() {
       if (res.data.success) {
         setOtpSent(true);
         setOtpCountdown(60);
-        setSuccess('6-digit verification code sent to your email!');
-        if (res.data.data?.devOtp) {
-          setDevOtp(res.data.data.devOtp);
-        }
+        setSuccess('6-digit verification code has been emailed to you. Please check your inbox!');
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to send OTP. Make sure you have an account.';
@@ -248,18 +244,7 @@ export default function Login() {
             </div>
           )}
 
-          {devOtp && (
-            <div className="p-4 rounded-xl bg-goldbg border border-gold/30 text-gold text-[12px] font-bold mb-6 flex items-center justify-between animate-in fade-in">
-              <span>Demo OTP: <strong className="font-mono text-[16px] text-ink">{devOtp}</strong></span>
-              <button
-                type="button"
-                onClick={() => setOtpValue(devOtp)}
-                className="text-[11px] uppercase tracking-wider underline hover:text-ink"
-              >
-                Auto-fill
-              </button>
-            </div>
-          )}
+
 
           {error && (
             <div className="p-4 rounded-xl bg-rbg border border-red/20 text-red text-[13px] font-bold mb-6 flex items-center gap-3 animate-in fade-in">
